@@ -102,7 +102,7 @@ function execute(stmt: Stmt, environment: Record<string, any>): void {
 class FunctionValue {
   constructor(
     public declaration: FunctionStmt,
-    public closure: Record<string, any>
+    public closure: Record<string, any>,
   ) {}
 
   call(args: any[]): any {

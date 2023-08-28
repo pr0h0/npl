@@ -51,9 +51,6 @@ class Lexer {
 
   private stringLiteral(): void {
     while (!this.isAtEnd() && this.source.charAt(this.current) !== '"') {
-      if (this.source.charAt(this.current) === "\n") {
-        this.line++;
-      }
       this.advance();
     }
 
@@ -82,7 +79,7 @@ class Lexer {
     }
 
     const numberValue = parseFloat(
-      this.source.substring(this.start, this.current)
+      this.source.substring(this.start, this.current),
     );
     this.addToken(TokenType.NUMBER, numberValue);
   }
@@ -130,7 +127,9 @@ class Lexer {
         this.addToken(TokenType.MODULO);
         break;
       case "=":
-        this.addToken(TokenType.ASSIGN);
+        this.addToken(
+          this.match(TokenType.EQUAL) ? TokenType.EQUAL : TokenType.ASSIGN,
+        );
         break;
       case ",":
         this.addToken(TokenType.COMMA);
@@ -166,7 +165,7 @@ class Lexer {
         break;
       case ">":
         this.addToken(
-          this.match("=") ? TokenType.GREATER_EQUAL : TokenType.GREATER
+          this.match("=") ? TokenType.GREATER_EQUAL : TokenType.GREATER,
         );
         break;
       case "&":
@@ -216,7 +215,7 @@ class Lexer {
       this.scanToken();
     }
 
-    this.tokens.push(new Token(TokenType.EOF, "", null, this.line+1));
+    this.tokens.push(new Token(TokenType.EOF, "", null, this.line + 1));
     return this.tokens;
   }
 }

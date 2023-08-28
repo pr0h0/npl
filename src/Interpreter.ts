@@ -81,7 +81,7 @@ export class Interpreter {
             return left || right;
           default:
             throw new Error(
-              `Unsupported operator: ${binaryExpr.operator.lexeme}`
+              `Unsupported operator: ${binaryExpr.operator.lexeme}`,
             );
         }
 
@@ -95,7 +95,7 @@ export class Interpreter {
             return !operand;
           default:
             throw new Error(
-              `Unsupported operator: ${unaryExpr.operator.lexeme}`
+              `Unsupported operator: ${unaryExpr.operator.lexeme}`,
             );
         }
 
@@ -157,7 +157,7 @@ export class Interpreter {
 
             // Execute the function body within the new environment
             this.executeBlock(funcStmt.body, funcEnvironment);
-          }
+          },
         );
         break;
 

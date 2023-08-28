@@ -3,7 +3,10 @@ import { StmtType } from "./StmtType";
 import Token from "./Token";
 
 export class VarDeclarationStmt extends Stmt {
-  constructor(public name: Token, public initializer: Expr | null) {
+  constructor(
+    public name: Token,
+    public initializer: Expr | null,
+  ) {
     super(StmtType.VAR_DECLARATION);
   }
 }
@@ -12,21 +15,43 @@ export class IfStatementStmt extends Stmt {
   constructor(
     public condition: Expr,
     public thenBranch: Stmt,
-    public elseBranch: Stmt | null
+    public elseBranch: Stmt | null,
   ) {
     super(StmtType.IF_STATEMENT);
   }
 }
 
+export class ReturnStmt extends Stmt {
+  constructor(public value: Expr | null) {
+    super(StmtType.RETURN_STATEMENT);
+  }
+}
+
 export class AssignmentStatementStmt extends Stmt {
-  constructor(public name: Token, public value: Expr) {
+  constructor(
+    public name: Token,
+    public value: Expr,
+  ) {
     super(StmtType.ASSIGNMENT);
   }
 }
 
 export class FunctionCallStatementStmt extends Stmt {
-  constructor(public name: Token, public args: Expr[]) {
+  constructor(
+    public name: Token,
+    public args: Expr[],
+  ) {
     super(StmtType.FUNCTION_CALL);
+  }
+}
+
+export class FunctionDefinitionStmt extends Stmt {
+  constructor(
+    public name: Token,
+    public args: Token[],
+    public body: BlockStatementStmt,
+  ) {
+    super(StmtType.FUNCTION_STATEMENT);
   }
 }
 
@@ -35,7 +60,7 @@ export class ForStatementStmt extends Stmt {
     public init: Stmt | null,
     public condition: Expr,
     public increment: Expr,
-    public body: Stmt
+    public body: Stmt,
   ) {
     super(StmtType.FOR_STATEMENT);
   }
@@ -45,14 +70,17 @@ export class FunctionStatementStmt extends Stmt {
   constructor(
     public name: Token,
     public parameters: Token[],
-    public body: Stmt[]
+    public body: Stmt[],
   ) {
     super(StmtType.FUNCTION_STATEMENT);
   }
 }
 
 export class WhileStatementStmt extends Stmt {
-  constructor(public condition: Expr, public body: BlockStatementStmt) {
+  constructor(
+    public condition: Expr,
+    public body: BlockStatementStmt,
+  ) {
     super(StmtType.WHILE_STATEMENT);
   }
 }

@@ -2,7 +2,9 @@ import Token from "./Token";
 import TokenType from "./TokenType";
 import {
   BinaryExpr,
+  CallExpr,
   Expr,
+  GroupingExpr,
   LiteralExpr,
   Stmt,
   VariableExpr,
@@ -11,10 +13,14 @@ import {
   AssignmentStatementStmt,
   BlockStatementStmt,
   FunctionCallStatementStmt,
+  FunctionDefinitionStmt,
+  FunctionStatementStmt,
   IfStatementStmt,
+  ReturnStmt,
   VarDeclarationStmt,
   WhileStatementStmt,
 } from "./Statements";
+import { ExprType } from "./ExprType";
 
 export class Parser {
   private current = 0;
@@ -65,19 +71,8 @@ export class Parser {
     throw new ParserError(message, this.peek(), this.peek().line);
   }
 
-  // Parsing Methods for Expressions
-  private parsePrimaryExpression(): Expr {
-    if (this.match([TokenType.NUMBER, TokenType.STRING_LITERAL])) {
-      return new LiteralExpr(this.previous().literal);
-    }
-    if (this.match([TokenType.IDENTIFIER])) {
-      return new VariableExpr(this.previous());
-    }
-    throw new ParserError(`Unexpected token at line ${this.tokens[this.current].line}`, this.tokens[this.current], this.tokens[this.current].line);
-  }
-
   private parseComparisonExpression(): Expr {
-    let expr = this.parsePrimaryExpression();
+    let expr = this.parseAddition();
 
     const comparisonOperators = [
       TokenType.GREATER,
@@ -90,7 +85,7 @@ export class Parser {
 
     while (this.match(comparisonOperators)) {
       const operator = this.previous();
-      const right = this.parsePrimaryExpression();
+      const right = this.parseLogicalAndExpression();
       expr = new BinaryExpr(expr, operator, right);
     }
 
@@ -133,6 +128,74 @@ export class Parser {
     return expr;
   }
 
+  private parseAddition(): Expr {
+    let expr = this.parseMultiplication();
+
+    while (this.match([TokenType.PLUS, TokenType.MINUS])) {
+      const operator = this.previous();
+      const right = this.parseMultiplication();
+      expr = new BinaryExpr(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parseMultiplication(): Expr {
+    let expr = this.parsePrimary();
+
+    while (this.match([TokenType.MULTIPLY, TokenType.DIVIDE])) {
+      const operator = this.previous();
+      const right = this.parsePrimary();
+      expr = new BinaryExpr(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parsePrimary(): Expr {
+    if (this.match([TokenType.NUMBER, TokenType.STRING_LITERAL])) {
+      return new LiteralExpr(this.previous());
+    }
+
+    if (this.match([TokenType.IDENTIFIER])) {
+      const identifier = new VariableExpr(this.previous());
+      if (this.check(TokenType.LEFT_PAREN)) {
+        const args = this.parseFunctionCallArguments();
+        return new CallExpr(identifier, args);
+      }
+      return new VariableExpr(this.previous());
+    }
+
+    if (this.match([TokenType.LEFT_PAREN])) {
+      const expr = this.parseExpression();
+      this.consume(
+        TokenType.RIGHT_PAREN,
+        "Expect closing parenthesis after expression.",
+      );
+      return new GroupingExpr(expr);
+    }
+
+    // Handle more cases as needed, like function calls or other primary expressions
+
+    throw new ParserError("Expect expression.", this.peek(), this.peek().line);
+  }
+
+  private parseFunctionCallArguments(): Expr[] {
+    const args: Expr[] = [];
+
+    if (!this.check(TokenType.RIGHT_PAREN)) {
+      do {
+        args.push(this.parseExpression());
+      } while (this.match([TokenType.COMMA]));
+    }
+
+    this.consume(
+      TokenType.RIGHT_PAREN,
+      "Expect closing parenthesis after function arguments.",
+    );
+    return args;
+  }
+
   private parseExpression(): Expr {
     return this.parseConditionalExpression();
   }
@@ -146,7 +209,7 @@ export class Parser {
     }
     this.consume(
       TokenType.SEMICOLON,
-      "Expect semicolon after variable declaration."
+      "Expect semicolon after variable declaration.",
     );
     return new VarDeclarationStmt(name, initializer);
   }
@@ -177,14 +240,63 @@ export class Parser {
   }
 
   private parseAssignmentStatement(): Stmt {
-    const name = this.previous();
+    const variable = this.previous();
     this.consume(TokenType.ASSIGN, 'Expect "=" after variable name.');
-    const value = this.parseExpression();
-    this.consume(
-      TokenType.SEMICOLON,
-      "Expect semicolon after assignment statement."
+
+    let value: Expr;
+    this.consume(TokenType.IDENTIFIER, "Expected Identifier");
+
+    if (this.peek().type === TokenType.LEFT_PAREN) {
+      // It's a function call
+      const functionName = this.previous();
+      const args = this.parseFunctionCallArguments();
+      value = new CallExpr(new VariableExpr(functionName), args);
+    } else {
+      // It's an expression
+      value = this.parseExpression();
+    }
+
+    this.consume(TokenType.SEMICOLON, 'Expect ";" after assignment.');
+    return new AssignmentStatementStmt(variable, value);
+  }
+
+  private parseReturnStatement(): Stmt {
+    let value: Expr | null = null;
+    if (!this.check(TokenType.SEMICOLON)) {
+      value = this.parseExpression();
+    }
+
+    this.consume(TokenType.SEMICOLON, "Expect semicolon after return value.");
+    return new ReturnStmt(value);
+  }
+
+  private parseFunctionDefinitionStatement(): Stmt {
+    const functionName = this.consume(
+      TokenType.IDENTIFIER,
+      "Expect function name.",
     );
-    return new AssignmentStatementStmt(name, value);
+
+    this.consume(TokenType.LEFT_PAREN, 'Expect "(" after function name.');
+    const parameters: Token[] = [];
+
+    if (!this.check(TokenType.RIGHT_PAREN)) {
+      do {
+        const paramName = this.consume(
+          TokenType.IDENTIFIER,
+          "Expect parameter name.",
+        );
+        parameters.push(paramName);
+      } while (this.match([TokenType.COMMA]));
+    }
+
+    this.consume(
+      TokenType.RIGHT_PAREN,
+      'Expect ")" after function parameters.',
+    );
+
+    const body: BlockStatementStmt = this.parseBlock();
+
+    return new FunctionDefinitionStmt(functionName, parameters, body);
   }
 
   private parseFunctionCallStatement(): Stmt {
@@ -233,9 +345,19 @@ export class Parser {
         return this.parseAssignmentStatement();
       }
     }
+    if (this.match([TokenType.FUNCTION])) {
+      return this.parseFunctionDefinitionStatement();
+    }
+    if (this.match([TokenType.RETURN])) {
+      return this.parseReturnStatement();
+    }
     // Implement parsing of other statement types here
 
-    throw new ParserError(`Unexpected token at line ${this.tokens[this.current].line}`, this.tokens[this.current], this.tokens[this.current].line);
+    throw new ParserError(
+      `Unexpected token at line ${this.tokens[this.current].line}`,
+      this.tokens[this.current],
+      this.tokens[this.current].line,
+    );
   }
 
   public parse(): Stmt[] {
@@ -247,7 +369,6 @@ export class Parser {
   }
 }
 
-
 class ParserError extends Error {
   // include error, token and line number
   constructor(
@@ -255,7 +376,7 @@ class ParserError extends Error {
     public token: Token,
     public line: number,
   ) {
-    super(error)
+    super(error);
     this.token = token;
     this.line = line;
   }

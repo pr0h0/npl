@@ -4,4 +4,5 @@ export enum ExprType {
   BINARY = "BINARY",
   UNARY = "UNARY",
   CALL = "CALL",
+  GROUPING = "GROUPING",
 }
