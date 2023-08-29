@@ -1,0 +1,35 @@
+var PI = 3.14159;
+var radius = 5.0;
+
+var circumference = 2 * PI * radius;
+var area = PI * radius ** 2;
+
+if (circumference >= 30) {
+  print("The circle's circumference is large.");
+} else {
+  print("The circle's circumference is small.");
+}
+
+for (var i = 0; i < 10; i++) {
+  if (i % 2 == 0) {
+    print(i, "is even");
+  } else {
+    print(i, "is odd");
+  }
+}
+
+/*
+var fruits = ["apple", "banana", "cherry"];
+print("The second fruit is", fruits[1]);
+
+var person = {
+  name: "Alice",
+  age: 30,
+  isStudent: false
+};
+
+print(person.name, "is", person.age, "years old.");
+if (!person.isStudent) {
+  print("They are not a student.");
+}
+*/

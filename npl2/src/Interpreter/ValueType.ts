@@ -1,0 +1,12 @@
+enum ValueType {
+  NUMBER = "NUMBER",
+  STRING = "STRING",
+  BOOLEAN = "BOOLEAN",
+  NULL = "NULL",
+  FUNCTION = "FUNCTION",
+  NATIVE_FUNCTION = "NATIVE_FUNCTION",
+  OBJECT = "OBJECT",
+  ARRAY = "ARRAY",
+  VARIABLE = "VARIABLE",
+}
+export default ValueType;
