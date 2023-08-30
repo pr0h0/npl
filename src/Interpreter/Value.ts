@@ -68,7 +68,6 @@ export class NativeFunctionValue extends RuntimeValue {
   }
 
   public call(args: RuntimeValue[]) {
-    console.log('native', {args})
     return this.func(args);
   }
 }

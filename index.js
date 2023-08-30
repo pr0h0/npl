@@ -1,1 +1,18 @@
-const program = require("./dist/index.js");
+const { doCLIParsing, doFileReadParsing } = require("./dist/index.js");
+
+const readline = require("readline");
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+rl.question("Do you want to \n1. run the Interpreter\n2. read from a file?\n> ", (answer) => {
+  if (answer === "1") {
+    doCLIParsing();
+  } else if (answer === "2") {
+    doFileReadParsing();
+  } else {
+    console.log("Invalid input");
+  }
+});

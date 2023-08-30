@@ -1,32 +1,31 @@
 import fs, { read } from "fs";
+import readline from "readline";
 
+import Environment from "./Environment/Environment";
+import Interpreter from "./Interpreter/Interpreter";
 import Lexer from "./Lexer/Lexer";
 import Parser from "./Parser/Parser";
 import { Program } from "./Parser/Stmt";
-import readline from "readline";
-import Interpreter from "./Interpreter/Interpreter";
-import Environment from "./Environment/Environment";
 
 function doFileReadParsing() {
-  const sourceCode = fs.readFileSync("./sourceCode.npl", "utf-8");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  rl.question("Enter file name to parse: ", (fileName) => {
+  const sourceCode = fs.readFileSync(`./${fileName}`, "utf-8");
 
   const lexer = new Lexer(sourceCode);
 
   const tokens = lexer.tokenize();
 
-  // for (const token of tokens) {
-  //   console.log(token);
-  // }
-
   const parser = new Parser(tokens);
   const ast = parser.produceAST() as Program;
   const interpreter = new Interpreter(ast.body);
 
-  try {
-    interpreter.start();
-  } catch (e) {
-    console.error(e);
-  }
+  interpreter.start();
+});
 }
 
 function doCLIParsing() {
@@ -34,6 +33,8 @@ function doCLIParsing() {
     input: process.stdin,
     output: process.stdout,
   });
+
+  console.log("Welcome to the NPL REPL!");
 
   const env = new Environment();
 
@@ -59,12 +60,12 @@ function handleUserInput(rl: readline.Interface, env: Environment) {
       }
 
       const interpreter = new Interpreter((ast as Program).body, env);
-      console.log(interpreter.start());
+      interpreter.start();
     } catch (e) {
       console.error(e);
     }
     handleUserInput(rl, env);
   });
 }
-// doFileReadParsing();
-doCLIParsing();
+
+export { doFileReadParsing, doCLIParsing };

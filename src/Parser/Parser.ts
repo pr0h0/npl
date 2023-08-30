@@ -1,24 +1,7 @@
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
-import {
-  AssignmentExpr,
-  BinaryExpr,
-  Expr,
-  FunctionCallExpr,
-  IdentifierExpr,
-  NumberLiteralExpr,
-  StringLiteralExpr,
-  UnaryExpr,
-} from "./Expr";
-import {
-  BlockStatement,
-  EmptyStatement,
-  ForStatement,
-  FunctionDeclaration,
-  IfStatement,
-  Program,
-  VariableDeclaration as VariableDeclarationStmt,
-} from "./Stmt";
+import { AssignmentExpr, BinaryExpr, Expr, FunctionCallExpr, IdentifierExpr, NumberLiteralExpr, StringLiteralExpr, UnaryExpr } from "./Expr";
+import { BlockStatement, EmptyStatement, ForStatement, FunctionDeclaration, IfStatement, Program, VariableDeclaration as VariableDeclarationStmt, WhileStatement } from "./Stmt";
 
 class Parser {
   constructor(tokens: Token[]) {
@@ -72,10 +55,18 @@ class Parser {
         type.value === "const"
       );
     }
+    if(this.peek().value === TokenType.WHILE.toLowerCase()) {
+      this.consume(TokenType.IDENTIFIER);
+      this.consume(TokenType.OPEN_PAREN);
+      const condition = this.parseExpr();
+      this.consume(TokenType.CLOSE_PAREN);
+      const body = this.parseBlockStatement();
+      return new WhileStatement(condition, body);
+    }
     if (this.peek().value === TokenType.FOR.toLowerCase()) {
       this.consume(TokenType.IDENTIFIER);
       this.consume(TokenType.OPEN_PAREN);
-      const start = this.parseIdentifierExpr();
+      const start = this.parseExpr();
       const condition = this.parseExpr();
       this.consume(TokenType.SEMICOLON);
       const increment = this.parseExpr();
@@ -105,7 +96,6 @@ class Parser {
       this.consume(TokenType.CLOSE_PAREN);
       const body = this.parseBlockStatement();
       let elseBody: BlockStatement | null = null;
-      console.log("else check", this.peek());
       if (this.peek().value === TokenType.ELSE.toLowerCase()) {
         this.consume(TokenType.IDENTIFIER);
         elseBody = this.parseBlockStatement();

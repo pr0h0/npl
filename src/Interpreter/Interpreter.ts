@@ -1,26 +1,10 @@
 import Environment from "../Environment/Environment";
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
-import {
-  AssignmentExpr,
-  BinaryExpr,
-  Expr,
-  FunctionCallExpr,
-  IdentifierExpr,
-  NumberLiteralExpr,
-  UnaryExpr,
-} from "../Parser/Expr";
+import { AssignmentExpr, BinaryExpr, Expr, FunctionCallExpr, IdentifierExpr, NumberLiteralExpr, UnaryExpr } from "../Parser/Expr";
 import ExprType from "../Parser/ExprType";
-import { FunctionDeclaration, VariableDeclaration } from "../Parser/Stmt";
-import {
-  BooleanValue,
-  FunctionValue,
-  NullValue,
-  NumberValue,
-  RuntimeValue,
-  StringValue,
-  VariableValue,
-} from "./Value";
+import { BlockStatement, ForStatement, FunctionDeclaration, IfStatement, VariableDeclaration, WhileStatement } from "../Parser/Stmt";
+import { BooleanValue, FunctionValue, NullValue, NumberValue, RuntimeValue, StringValue, VariableValue } from "./Value";
 
 class Interpreter {
   constructor(
@@ -191,10 +175,8 @@ class Interpreter {
   }
 
   public parseFunctionCallExpr(expr: FunctionCallExpr): RuntimeValue {
-    console.log({expr});
     const func = this.environment.get(expr.name.value) as FunctionValue;
     const args = (expr as FunctionCallExpr).args.map((arg) => this.interpret(arg));
-    console.log({args});
     return func.call(args);
   }
 
@@ -233,6 +215,47 @@ class Interpreter {
     }
   }
 
+  public parseIfStatement(expr: IfStatement): RuntimeValue {
+    const ifStmt = expr as IfStatement;
+    const condition = this.interpret(ifStmt.condition) as BooleanValue;
+    if (condition.value) {
+      return this.interpret(ifStmt.thenStatement);
+    } else if (ifStmt.elseStatement) {
+      return this.interpret(ifStmt.elseStatement);
+    }
+    return new NullValue();
+  }
+
+  public parseBlockStatement(expr: BlockStatement): RuntimeValue {
+    const block = expr as BlockStatement;
+    for (const stmt of block.body) {
+      this.interpret(stmt);
+    }
+    return new NullValue();
+  }
+
+  public parseWhileStatement(expr: WhileStatement): RuntimeValue {
+    const whileStmt = expr as WhileStatement;
+    while (this.interpret(whileStmt.condition) as BooleanValue) {
+      this.interpret(whileStmt.body);
+    }
+    return new NullValue();
+  }
+
+  public parseForStatement(expr: ForStatement): RuntimeValue {
+    const forStmt = expr as ForStatement;
+    this.interpret(forStmt.init);
+    while (this.interpret(forStmt.condition) as BooleanValue) {
+      console.log(forStmt.condition)
+      this.interpret(forStmt.body);
+      console.log(forStmt.body)
+      this.interpret(forStmt.update);
+      console.log(forStmt.update)
+    }
+
+    return new NullValue();
+  }
+
   public interpret(expr: Expr): RuntimeValue {
     if (expr.type === ExprType.NUMBER_LITERAL) {
       return new NumberValue((expr as NumberLiteralExpr).value);
@@ -267,12 +290,36 @@ class Interpreter {
       return this.parseBinaryExpr(expr as BinaryExpr);
     }
 
+    if(expr.type === ExprType.IF_STATEMENT){
+      return this.parseIfStatement(expr as IfStatement);
+    }
+
+    if(expr.type === ExprType.BLOCK_STATEMENT){
+      return this.parseBlockStatement(expr as BlockStatement);
+    }
+
     if (expr.type === ExprType.FUNCTION_DECLARATION) {
       return this.parseFunctionDeclaration(expr as FunctionDeclaration);
     }
 
     if (expr.type === ExprType.FUNCTION_CALL_EXPR) {
       return this.parseFunctionCallExpr(expr as FunctionCallExpr);
+    }
+
+    if(expr.type === ExprType.EMPTY_STATEMENT){
+      return new NullValue();
+    }
+
+    if(expr.type === ExprType.EXPRESSION_STATEMENT){
+      return this.interpret((expr as Expr)) as RuntimeValue;
+    }
+
+    if(expr.type === ExprType.WHILE_STATEMENT){
+      return this.parseWhileStatement(expr as WhileStatement);
+    }
+
+    if(expr.type === ExprType.FOR_STATEMENT){
+      return this.parseForStatement(expr as ForStatement);
     }
 
     throw new Error(`Unimplemented interpreter for ${expr.type}`);
