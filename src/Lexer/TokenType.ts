@@ -45,6 +45,7 @@ enum TokenType {
   CONST = "CONST",
   TRUE = "TRUE",
   FALSE = "FALSE",
+  NULL = "NULL",
 
   // Literal
   IDENTIFIER = "IDENTIFIER",

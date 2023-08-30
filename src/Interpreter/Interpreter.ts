@@ -1,10 +1,35 @@
 import Environment from "../Environment/Environment";
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
-import { AssignmentExpr, BinaryExpr, Expr, FunctionCallExpr, IdentifierExpr, NumberLiteralExpr, UnaryExpr } from "../Parser/Expr";
+import {
+  AssignmentExpr,
+  BinaryExpr,
+  Expr,
+  FunctionCallExpr,
+  IdentifierExpr,
+  NumberLiteralExpr,
+  UnaryExpr,
+} from "../Parser/Expr";
 import ExprType from "../Parser/ExprType";
-import { BlockStatement, ForStatement, FunctionDeclaration, IfStatement, VariableDeclaration, WhileStatement } from "../Parser/Stmt";
-import { BooleanValue, FunctionValue, NullValue, NumberValue, RuntimeValue, StringValue, VariableValue } from "./Value";
+import {
+  BlockStatement,
+  ForStatement,
+  FunctionDeclaration,
+  IfStatement,
+  ReturnStatement,
+  VariableDeclaration,
+  WhileStatement,
+} from "../Parser/Stmt";
+import {
+  BooleanValue,
+  FunctionValue,
+  NullValue,
+  NumberValue,
+  RuntimeValue,
+  StringValue,
+  VariableValue,
+} from "./Value";
+import ValueType from "./ValueType";
 
 class Interpreter {
   constructor(
@@ -16,27 +41,147 @@ class Interpreter {
 
   public ast: Expr[] = [];
 
+  public parseAdditionExpr(
+    left: RuntimeValue,
+    right: RuntimeValue
+  ): RuntimeValue {
+    if (left.type === ValueType.STRING || right.type === ValueType.STRING) {
+      return new StringValue(
+        new Token(
+          TokenType.STRING_LITERAL,
+          left.value.toString() + right.value.toString(),
+          0
+        )
+      );
+    }
+
+    if (left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
+      return new NumberValue(
+        new Token(
+          TokenType.NUMBER_LITERAL,
+          (parseFloat(left.value) + parseFloat(right.value)).toString(),
+          0
+        )
+      );
+    }
+
+    if (left.type === ValueType.BOOLEAN && right.type === ValueType.BOOLEAN) {
+      return new BooleanValue(
+        new Token(
+          TokenType.BOOLEAN_LITERAL,
+          (left.value || right.value).toString(),
+          0
+        )
+      );
+    }
+
+    // if one of the values is null or some other literal, return the null value
+    return new NullValue();
+  }
+
+  public parseSubstractionExpr(
+    left: RuntimeValue,
+    right: RuntimeValue
+  ): RuntimeValue {
+    if (left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
+      return new NumberValue(
+        new Token(
+          TokenType.NUMBER_LITERAL,
+          (parseFloat(left.value) - parseFloat(right.value)).toString(),
+          0
+        )
+      );
+    } else if (
+      left.type === ValueType.STRING &&
+      right.type === ValueType.STRING
+    ) {
+      return new StringValue(
+        new Token(
+          TokenType.STRING_LITERAL,
+          left.value.toString().replace(right.value.toString(), ""),
+          0
+        )
+      );
+    } else if (
+      left.type === ValueType.STRING &&
+      right.type === ValueType.NUMBER
+    ) {
+      return new StringValue(
+        new Token(
+          TokenType.STRING_LITERAL,
+          left.value.toString().slice(0, -parseFloat(right.value.toString())),
+          0
+        )
+      );
+    } else if (
+      left.type === ValueType.NUMBER &&
+      right.type === ValueType.STRING
+    ) {
+      return new StringValue(
+        new Token(
+          TokenType.STRING_LITERAL,
+          left.value
+            .toString()
+            .slice(
+              parseFloat(right.value.toString()),
+              left.value.toString().length
+            ),
+          0
+        )
+      );
+    } else if (
+      left.type === ValueType.BOOLEAN &&
+      right.type === ValueType.BOOLEAN
+    ) {
+      return new BooleanValue(
+        new Token(
+          TokenType.BOOLEAN_LITERAL,
+          (left.value && !right.value).toString(),
+          0
+        )
+      );
+    } else if (
+      left.type === ValueType.BOOLEAN &&
+      right.type === ValueType.NUMBER
+    ) {
+      return new NumberValue(
+        new Token(
+          TokenType.NUMBER_LITERAL,
+          (
+            parseFloat(left.value.toString()) -
+            parseFloat(right.value.toString())
+          ).toString(),
+          0
+        )
+      );
+    } else if (
+      left.type === ValueType.NUMBER &&
+      right.type === ValueType.BOOLEAN
+    ) {
+      return new NumberValue(
+        new Token(
+          TokenType.NUMBER_LITERAL,
+          (
+            parseFloat(left.value.toString()) -
+            parseFloat(right.value.toString())
+          ).toString(),
+          0
+        )
+      );
+    }
+
+    return new NullValue();
+  }
+
   public parseBinaryExpr(expr: Expr): RuntimeValue {
     const binary = expr as BinaryExpr;
     const left = this.interpret(binary.left);
     const right = this.interpret(binary.right);
     switch (binary.operator.value) {
       case "+":
-        return new NumberValue(
-          new Token(
-            TokenType.NUMBER_LITERAL,
-            (parseFloat(left.value) + parseFloat(right.value)).toString(),
-            0
-          )
-        );
+        return this.parseAdditionExpr(left, right);
       case "-":
-        return new NumberValue(
-          new Token(
-            TokenType.NUMBER_LITERAL,
-            (parseFloat(left.value) - parseFloat(right.value)).toString(),
-            0
-          )
-        );
+        return this.parseSubstractionExpr(left, right);
       case "*":
         return new NumberValue(
           new Token(
@@ -176,8 +321,27 @@ class Interpreter {
 
   public parseFunctionCallExpr(expr: FunctionCallExpr): RuntimeValue {
     const func = this.environment.get(expr.name.value) as FunctionValue;
-    const args = (expr as FunctionCallExpr).args.map((arg) => this.interpret(arg));
+    const args = (expr as FunctionCallExpr).args.map((arg) =>
+      this.interpret(arg)
+    );
     return func.call(args);
+  }
+
+  public parseNotOperator(expr: RuntimeValue): boolean {
+    console.log(expr);
+    if (expr.type === ValueType.BOOLEAN) {
+      return !(expr.value === "true");
+    }
+    if (expr.type === ValueType.NULL) {
+      return true;
+    }
+    if (expr.type === ValueType.NUMBER) {
+      return parseFloat(expr.value) === 0;
+    }
+    if (expr.type === ValueType.STRING) {
+      return expr.value.length === 0;
+    }
+    return false;
   }
 
   public parseUnaryExpr(expr: UnaryExpr): RuntimeValue {
@@ -208,7 +372,19 @@ class Interpreter {
         );
       case "!":
         return new BooleanValue(
-          new Token(TokenType.BOOLEAN_LITERAL, (!right.value).toString(), 0)
+          new Token(
+            TokenType.BOOLEAN_LITERAL,
+            this.parseNotOperator(right).toString(),
+            0
+          )
+        );
+      case "-":
+        return new NumberValue(
+          new Token(
+            TokenType.NUMBER_LITERAL,
+            (-parseFloat(right.value)).toString(),
+            0
+          )
         );
       default:
         throw new Error(`Unimplemented unary operator ${unary.operator.value}`);
@@ -236,21 +412,20 @@ class Interpreter {
 
   public parseWhileStatement(expr: WhileStatement): RuntimeValue {
     const whileStmt = expr as WhileStatement;
-    while (this.interpret(whileStmt.condition).value ==='true') {
-      this.interpret(whileStmt.body);
+    const interpreter = new Interpreter([], new Environment(this.environment));
+    while (interpreter.interpret(whileStmt.condition).value === "true") {
+      interpreter.interpret(whileStmt.body);
     }
     return new NullValue();
   }
 
   public parseForStatement(expr: ForStatement): RuntimeValue {
     const forStmt = expr as ForStatement;
-    this.interpret(forStmt.init);
-    let counter = 0;
-    while (this.interpret(forStmt.condition).value === 'true') {
-      this.interpret(forStmt.body);
-      this.interpret(forStmt.update);
-      counter ++;
-      if(counter > 100) break;
+    const interpreter = new Interpreter([], new Environment(this.environment));
+    interpreter.interpret(forStmt.init);
+    while (interpreter.interpret(forStmt.condition).value === "true") {
+      interpreter.interpret(forStmt.body);
+      interpreter.interpret(forStmt.update);
     }
 
     return new NullValue();
@@ -289,11 +464,11 @@ class Interpreter {
       return this.parseBinaryExpr(expr as BinaryExpr);
     }
 
-    if(expr.type === ExprType.IF_STATEMENT){
+    if (expr.type === ExprType.IF_STATEMENT) {
       return this.parseIfStatement(expr as IfStatement);
     }
 
-    if(expr.type === ExprType.BLOCK_STATEMENT){
+    if (expr.type === ExprType.BLOCK_STATEMENT) {
       return this.parseBlockStatement(expr as BlockStatement);
     }
 
@@ -305,19 +480,23 @@ class Interpreter {
       return this.parseFunctionCallExpr(expr as FunctionCallExpr);
     }
 
-    if(expr.type === ExprType.EMPTY_STATEMENT){
+    if (expr.type === ExprType.RETURN_STATEMENT) {
+      return this.interpret((expr as ReturnStatement).argument);
+    }
+
+    if (expr.type === ExprType.EMPTY_STATEMENT) {
       return new NullValue();
     }
 
-    if(expr.type === ExprType.EXPRESSION_STATEMENT){
-      return this.interpret((expr as Expr)) as RuntimeValue;
+    if (expr.type === ExprType.EXPRESSION_STATEMENT) {
+      return this.interpret(expr as Expr) as RuntimeValue;
     }
 
-    if(expr.type === ExprType.WHILE_STATEMENT){
+    if (expr.type === ExprType.WHILE_STATEMENT) {
       return this.parseWhileStatement(expr as WhileStatement);
     }
 
-    if(expr.type === ExprType.FOR_STATEMENT){
+    if (expr.type === ExprType.FOR_STATEMENT) {
       return this.parseForStatement(expr as ForStatement);
     }
 
@@ -326,7 +505,10 @@ class Interpreter {
 
   public start() {
     for (const stmt of this.ast) {
-      this.interpret(stmt);
+      const value = this.interpret(stmt);
+      if ((value as RuntimeValue)?.value) {
+        console.log(value.value);
+      }
     }
   }
 }

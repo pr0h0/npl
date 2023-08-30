@@ -14,18 +14,18 @@ function doFileReadParsing() {
   });
 
   rl.question("Enter file name to parse: ", (fileName) => {
-  const sourceCode = fs.readFileSync(`./${fileName}`, "utf-8");
+    const sourceCode = fs.readFileSync(`./${fileName}`, "utf-8");
 
-  const lexer = new Lexer(sourceCode);
+    const lexer = new Lexer(sourceCode);
 
-  const tokens = lexer.tokenize();
+    const tokens = lexer.tokenize();
 
-  const parser = new Parser(tokens);
-  const ast = parser.produceAST() as Program;
-  const interpreter = new Interpreter(ast.body);
+    const parser = new Parser(tokens);
+    const ast = parser.produceAST() as Program;
+    const interpreter = new Interpreter(ast.body);
 
-  interpreter.start();
-});
+    interpreter.start();
+  });
 }
 
 function doCLIParsing() {
@@ -53,7 +53,7 @@ function handleUserInput(rl: readline.Interface, env: Environment) {
 
       const parser = new Parser(tokens);
       const ast = parser.produceAST();
-      
+
       const interpreter = new Interpreter((ast as Program).body, env);
       interpreter.start();
     } catch (e) {

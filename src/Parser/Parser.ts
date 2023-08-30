@@ -1,7 +1,28 @@
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
-import { AssignmentExpr, BinaryExpr, Expr, FunctionCallExpr, IdentifierExpr, NumberLiteralExpr, StringLiteralExpr, UnaryExpr } from "./Expr";
-import { BlockStatement, EmptyStatement, ForStatement, FunctionDeclaration, IfStatement, Program, VariableDeclaration as VariableDeclarationStmt, WhileStatement } from "./Stmt";
+import {
+  AssignmentExpr,
+  BinaryExpr,
+  BooleanLiteralExpr,
+  Expr,
+  FunctionCallExpr,
+  IdentifierExpr,
+  NullLiteralExpr,
+  NumberLiteralExpr,
+  StringLiteralExpr,
+  UnaryExpr,
+} from "./Expr";
+import {
+  BlockStatement,
+  EmptyStatement,
+  ForStatement,
+  FunctionDeclaration,
+  IfStatement,
+  Program,
+  ReturnStatement,
+  VariableDeclaration as VariableDeclarationStmt,
+  WhileStatement,
+} from "./Stmt";
 
 class Parser {
   constructor(tokens: Token[]) {
@@ -30,7 +51,14 @@ class Parser {
   public parseStringLiteral(): StringLiteralExpr {
     return new StringLiteralExpr(this.consume(TokenType.STRING_LITERAL));
   }
+  public parseNullLiteral(): NullLiteralExpr {
+    this.consume(TokenType.IDENTIFIER);
+    return new NullLiteralExpr();
+  }
   public parseIdentifierExpr(): Expr {
+    if (this.peek().value === TokenType.NULL.toLowerCase()) {
+      return this.parseNullLiteral();
+    }
     if (
       this.peek().value === TokenType.VAR.toLowerCase() ||
       this.peek().value === TokenType.CONST.toLowerCase()
@@ -55,7 +83,7 @@ class Parser {
         type.value === "const"
       );
     }
-    if(this.peek().value === TokenType.WHILE.toLowerCase()) {
+    if (this.peek().value === TokenType.WHILE.toLowerCase()) {
       this.consume(TokenType.IDENTIFIER);
       this.consume(TokenType.OPEN_PAREN);
       const condition = this.parseExpr();
@@ -117,6 +145,26 @@ class Parser {
         this.consume(TokenType.SEMICOLON);
       }
       return new FunctionCallExpr(name, args);
+    }
+
+    if (this.peek().value === TokenType.RETURN.toLowerCase()) {
+      this.consume(TokenType.IDENTIFIER);
+      const value = this.parseExpr();
+      this.consume(TokenType.SEMICOLON);
+      return new ReturnStatement(value);
+    }
+
+    if (
+      this.peek().value === TokenType.TRUE.toLowerCase() ||
+      this.peek().value === TokenType.FALSE.toLowerCase()
+    ) {
+      return new BooleanLiteralExpr(this.consume(this.peek().type));
+    }
+
+    if (this.peek(1).type === TokenType.SEMICOLON) {
+      const name = this.consume(TokenType.IDENTIFIER);
+      this.consume(TokenType.SEMICOLON);
+      return new IdentifierExpr(name);
     }
 
     return new IdentifierExpr(this.consume(TokenType.IDENTIFIER));
@@ -200,15 +248,24 @@ class Parser {
   }
 
   public parseUnaryExpr(): Expr {
-    let expr = this.parsePrimaryExpr();
     if (
       this.peek().type === TokenType.NOT ||
+      this.peek().type === TokenType.MINUS
+    ) {
+      const operator = this.consume(this.peek().type);
+      const expr = this.parseUnaryExpr();
+      return new UnaryExpr(operator, expr);
+    }
+
+    let expr = this.parsePrimaryExpr();
+    if (
       this.peek().type === TokenType.DECREMENT ||
       this.peek().type === TokenType.INCREMENT
     ) {
       const operator = this.consume(this.peek().type);
       return new UnaryExpr(operator, expr);
     }
+
     return expr;
   }
   public parsePrimaryExpr(): Expr {

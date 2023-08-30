@@ -8,5 +8,6 @@ enum ValueType {
   OBJECT = "OBJECT",
   ARRAY = "ARRAY",
   VARIABLE = "VARIABLE",
+  RETURN = "RETURN",
 }
 export default ValueType;

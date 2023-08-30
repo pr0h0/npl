@@ -1,5 +1,6 @@
 import {
   NativeFunctionValue,
+  NullValue,
   NumberValue,
   RuntimeValue,
   StringValue,
@@ -26,9 +27,24 @@ export function defineVariables(env: Environment) {
 export function defineFunctions(env: Environment) {
   env.define(
     "print",
-    new NativeFunctionValue("print", (args: RuntimeValue[]) =>{
-      args.forEach(arg => console.log(arg.value));
-    }
-    )
+    new NativeFunctionValue("print", (args: RuntimeValue[]) => {
+      args.forEach((arg) => console.log(arg.value));
+      return new NullValue();
+    })
+  );
+  env.define(
+    "clear",
+    new NativeFunctionValue("clear", (_args: RuntimeValue[]) => {
+      console.clear();
+      return new NullValue();
+    })
+  );
+  env.define(
+    "timestamp",
+    new NativeFunctionValue("timestamp", (_args: RuntimeValue[]) => {
+      return new NumberValue(
+        new Token(TokenType.NUMBER_LITERAL, Date.now().toString(), 0)
+      );
+    })
   );
 }

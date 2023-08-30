@@ -1,7 +1,7 @@
 import Environment from "../Environment/Environment";
 import Token from "../Lexer/Token";
 import { Expr } from "../Parser/Expr";
-import { VariableDeclaration } from "../Parser/Stmt";
+import ExprType from "../Parser/ExprType";
 import Interpreter from "./Interpreter";
 import ValueType from "./ValueType";
 
@@ -48,7 +48,7 @@ export class FunctionValue extends RuntimeValue {
     for (let i = 0; i < this.params.length; i++) {
       interpreter.environment.define(
         this.params[i].value,
-        args[i],
+        args[i] || new NullValue(),
         false,
         false
       );
@@ -56,8 +56,12 @@ export class FunctionValue extends RuntimeValue {
     let lastExpr: RuntimeValue = new NullValue();
     for (let i = 0; i < this.body.length; i++) {
       lastExpr = interpreter.interpret(this.body[i]);
+      if (this.body[i].type === ExprType.RETURN_STATEMENT) {
+        return lastExpr;
+      }
     }
-    return lastExpr;
+
+    return new NullValue();
   }
 }
 
