@@ -236,7 +236,7 @@ class Interpreter {
 
   public parseWhileStatement(expr: WhileStatement): RuntimeValue {
     const whileStmt = expr as WhileStatement;
-    while (this.interpret(whileStmt.condition) as BooleanValue) {
+    while (this.interpret(whileStmt.condition).value ==='true') {
       this.interpret(whileStmt.body);
     }
     return new NullValue();
@@ -245,12 +245,12 @@ class Interpreter {
   public parseForStatement(expr: ForStatement): RuntimeValue {
     const forStmt = expr as ForStatement;
     this.interpret(forStmt.init);
-    while (this.interpret(forStmt.condition) as BooleanValue) {
-      console.log(forStmt.condition)
+    let counter = 0;
+    while (this.interpret(forStmt.condition).value === 'true') {
       this.interpret(forStmt.body);
-      console.log(forStmt.body)
       this.interpret(forStmt.update);
-      console.log(forStmt.update)
+      counter ++;
+      if(counter > 100) break;
     }
 
     return new NullValue();
@@ -274,7 +274,6 @@ class Interpreter {
       return this.parseVariableDeclaration(expr as VariableDeclaration);
     }
     if (expr.type === ExprType.IDENTIFIER) {
-      console.dir(this.environment, { depth: null });
       return this.environment.get((expr as IdentifierExpr).name.value);
     }
 
@@ -327,7 +326,7 @@ class Interpreter {
 
   public start() {
     for (const stmt of this.ast) {
-      console.log(this.interpret(stmt));
+      this.interpret(stmt);
     }
   }
 }

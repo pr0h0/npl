@@ -55,7 +55,6 @@ export class FunctionValue extends RuntimeValue {
     }
     let lastExpr: RuntimeValue = new NullValue();
     for (let i = 0; i < this.body.length; i++) {
-      console.log(this.body[i])
       lastExpr = interpreter.interpret(this.body[i]);
     }
     return lastExpr;

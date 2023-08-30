@@ -50,15 +50,10 @@ function handleUserInput(rl: readline.Interface, env: Environment) {
     try {
       const lexer = new Lexer(answer);
       const tokens = lexer.tokenize();
-      for (const token of tokens) {
-        console.log(token);
-      }
+
       const parser = new Parser(tokens);
       const ast = parser.produceAST();
-      for (const stmt of (ast as Program).body) {
-        console.dir(stmt, { depth: null });
-      }
-
+      
       const interpreter = new Interpreter((ast as Program).body, env);
       interpreter.start();
     } catch (e) {
