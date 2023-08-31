@@ -1,7 +1,7 @@
 var radius = 5.0;
 
 var circumference = 2 * PI * radius;
-var area = PI * radius ** 2;
+// var area = PI * radius * radius;
 
 if (circumference >= 30) {
   print("The circle's circumference is large.");
@@ -21,7 +21,7 @@ function add(a,b) {
   print(a+b);
 }
 
-add(5, 13);
+print(add(5, 13));
 
 /*
 var fruits = ["apple", "banana", "cherry"];

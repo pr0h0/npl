@@ -17,6 +17,21 @@ class Environment {
   public constants: Map<string, string> = new Map();
   public functions: Map<string, RuntimeValue> = new Map();
 
+  public delete(name: string) : RuntimeValue {
+    const identifier = this.get(name);
+
+    if(this.functions.has(name)) {
+      throw new Error("Can't delete function definition");
+    }
+    if(this.constants.has(name)) {
+      throw new Error("Can't delete constant variable");
+    }
+
+    this.variables.delete(name);
+
+    return identifier;
+  }
+
   public get(name: string): RuntimeValue {
     if (this.variables.has(name)) {
       if (this.functions.has(name)) {

@@ -30,6 +30,12 @@ export class NullLiteralExpr extends Expr {
   }
 }
 
+export class DeleteExpr extends Expr {
+  constructor(public name: Token) {
+    super(ExprType.DELETE);
+  }
+}
+
 export class IdentifierExpr extends Expr {
   constructor(public name: Token) {
     super(ExprType.IDENTIFIER);
@@ -75,5 +81,17 @@ export class ArrayExpr extends Expr {
 export class FunctionCallExpr extends Expr {
   constructor(public name: Token, public args: Expr[]) {
     super(ExprType.FUNCTION_CALL_EXPR);
+  }
+}
+
+export class ArrayInitExpr extends Expr {
+  constructor(public elements: Expr[]) {
+    super(ExprType.ARRAY_INIT_EXPR);
+  }
+}
+
+export class ArrayLiteralExpr extends Expr {
+  constructor(public elements: Expr[]) {
+    super(ExprType.ARRAY_LITERAL_EXPR);
   }
 }

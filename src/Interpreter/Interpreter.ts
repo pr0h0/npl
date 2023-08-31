@@ -4,6 +4,7 @@ import TokenType from "../Lexer/TokenType";
 import {
   AssignmentExpr,
   BinaryExpr,
+  DeleteExpr,
   Expr,
   FunctionCallExpr,
   IdentifierExpr,
@@ -387,7 +388,6 @@ class Interpreter {
   }
 
   public parseNotOperator(expr: RuntimeValue): boolean {
-    console.log(expr);
     if (expr.type === ValueType.BOOLEAN) {
       return !(expr.value === "true");
     }
@@ -403,21 +403,52 @@ class Interpreter {
     return false;
   }
 
+  public parseDecrement(expr: UnaryExpr, value: RuntimeValue): RuntimeValue {
+    if(value.type === ValueType.BOOLEAN) {
+      return this.environment.set(
+        (expr.expr as IdentifierExpr).name.value,
+        new BooleanValue(
+          new Token(
+            TokenType.BOOLEAN_LITERAL,
+            false.toString(),
+            0
+          )
+        )
+      );
+    } 
+    if(value.type === ValueType.NUMBER) {
+      return this.environment.set(
+        (expr.expr as IdentifierExpr).name.value,
+        new NumberValue(
+          new Token(
+            TokenType.NUMBER_LITERAL,
+            (parseFloat(value.value) - 1).toString(),
+            0
+          )
+        )
+      );
+    }else if(value.type === ValueType.STRING) {
+      return this.environment.set(
+        (expr.expr as IdentifierExpr).name.value,
+        new StringValue(
+          new Token(
+            TokenType.STRING_LITERAL,
+            (value.value.slice(0, -1)).toString(),
+            0
+          )
+        )
+      );
+    }
+
+    return new NullValue();
+  }
+
   public parseUnaryExpr(expr: UnaryExpr): RuntimeValue {
     const unary = expr as UnaryExpr;
     const right = this.interpret(unary.expr);
     switch (unary.operator.value) {
       case "--":
-        return this.environment.set(
-          (unary.expr as IdentifierExpr).name.value,
-          new NumberValue(
-            new Token(
-              TokenType.NUMBER_LITERAL,
-              (parseFloat(right.value) - 1).toString(),
-              0
-            )
-          )
-        );
+        return this.parseDecrement(unary, right);
       case "++":
         return this.environment.set(
           (unary.expr as IdentifierExpr).name.value,
@@ -490,6 +521,10 @@ class Interpreter {
     return new NullValue();
   }
 
+  public parseDeleteExpr(expr: DeleteExpr) : RuntimeValue {
+    return this.environment.delete(expr.name.value);
+  }
+
   public interpret(expr: Expr): RuntimeValue {
     if (expr.type === ExprType.NUMBER_LITERAL) {
       return new NumberValue((expr as NumberLiteralExpr).value);
@@ -557,6 +592,11 @@ class Interpreter {
 
     if (expr.type === ExprType.FOR_STATEMENT) {
       return this.parseForStatement(expr as ForStatement);
+    }
+
+    if(expr.type === ExprType.DELETE) {
+      console.log(expr);
+      return this.parseDeleteExpr(expr as DeleteExpr);
     }
 
     throw new Error(`Unimplemented interpreter for ${expr.type}`);

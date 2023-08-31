@@ -4,6 +4,7 @@ import {
   AssignmentExpr,
   BinaryExpr,
   BooleanLiteralExpr,
+  DeleteExpr,
   Expr,
   FunctionCallExpr,
   IdentifierExpr,
@@ -55,6 +56,13 @@ class Parser {
     this.consume(TokenType.IDENTIFIER);
     return new NullLiteralExpr();
   }
+  public parseDeleteExpr(): DeleteExpr {
+    this.consume(TokenType.DELETE);
+    const identifier = this.consume(TokenType.IDENTIFIER);
+    this.consume(TokenType.SEMICOLON);
+    return new DeleteExpr(identifier);
+  }
+
   public parseIdentifierExpr(): Expr {
     if (this.peek().value === TokenType.NULL.toLowerCase()) {
       return this.parseNullLiteral();
@@ -269,6 +277,9 @@ class Parser {
     return expr;
   }
   public parsePrimaryExpr(): Expr {
+    if(this.peek().type === TokenType.DELETE){
+      return this.parseDeleteExpr();
+    }
     if (this.peek().type === TokenType.NUMBER_LITERAL) {
       return this.parseNumberLiteral();
     }
@@ -289,6 +300,10 @@ class Parser {
     if (this.peek().type === TokenType.OPEN_BRACE) {
       return this.parseBlockStatement();
     }
+
+    // if(this.peek().type === TokenType.OPEN_BRACKET) {
+    //   return this.parse
+    // }
 
     console.error("Unexpected token", this.peek());
     throw new Error("Unexpected token");
