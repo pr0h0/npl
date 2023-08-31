@@ -1,12 +1,14 @@
 {
   "devDependencies": {
-    "@types/node": "^20.5.7"
+    "@types/node": "^20.5.7",
+    "@types/readline-sync": "^1.4.4"
   },
   "scripts": {
     "start": "tsc && node index.js",
+    "file": "tsc && node index.js sourceCode.npl",
     "build": "tsc"
   },
   "dependencies": {
-    "readline": "^1.3.0"
+    "readline-sync": "^1.4.10"
   }
 }

@@ -27,6 +27,12 @@ export class BooleanValue extends RuntimeValue {
   }
 }
 
+export class ArrayValue extends RuntimeValue {
+  constructor(values: RuntimeValue[]) {
+    super(values, ValueType.ARRAY);
+  }
+}
+
 export class NullValue extends RuntimeValue {
   constructor() {
     super(null, ValueType.NULL);
@@ -39,7 +45,7 @@ export class FunctionValue extends RuntimeValue {
     public params: Token[],
     public body: Expr[],
     public closure: Environment
-    ) {
+  ) {
     super(null, ValueType.FUNCTION);
   }
 
@@ -48,7 +54,7 @@ export class FunctionValue extends RuntimeValue {
     for (let i = 0; i < this.params.length; i++) {
       interpreter.environment.define(
         this.params[i].value,
-        args[i] || new NullValue(),
+        args[i] ?? new NullValue(),
         false,
         false
       );

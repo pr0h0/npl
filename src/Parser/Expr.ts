@@ -95,3 +95,9 @@ export class ArrayLiteralExpr extends Expr {
     super(ExprType.ARRAY_LITERAL_EXPR);
   }
 }
+
+export class ArrayAccessExpr extends Expr {
+  constructor(public name: Token, public index: Expr) {
+    super(ExprType.ARRAY_ACCESS_EXPR);
+  }
+}

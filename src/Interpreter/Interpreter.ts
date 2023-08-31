@@ -2,6 +2,8 @@ import Environment from "../Environment/Environment";
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
 import {
+  ArrayAccessExpr,
+  ArrayLiteralExpr,
   AssignmentExpr,
   BinaryExpr,
   DeleteExpr,
@@ -22,6 +24,7 @@ import {
   WhileStatement,
 } from "../Parser/Stmt";
 import {
+  ArrayValue,
   BooleanValue,
   FunctionValue,
   NullValue,
@@ -70,7 +73,7 @@ class Interpreter {
       return new BooleanValue(
         new Token(
           TokenType.BOOLEAN_LITERAL,
-          (left.value === 'true' || right.value === 'true').toString(),
+          (left.value === "true" || right.value === "true").toString(),
           0
         )
       );
@@ -121,11 +124,10 @@ class Interpreter {
       return new StringValue(
         new Token(
           TokenType.STRING_LITERAL,
-          right.value
-            .slice(
-              parseFloat(left.value.toString()),
-              right.value.length
-            ),
+          right.value.slice(
+            parseFloat(left.value.toString()),
+            right.value.length
+          ),
           0
         )
       );
@@ -173,74 +175,114 @@ class Interpreter {
     return new NullValue();
   }
 
-  public parseMultiplicationOperator(left: RuntimeValue, right: RuntimeValue): RuntimeValue {
-    if(left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
+  public parseMultiplicationOperator(
+    left: RuntimeValue,
+    right: RuntimeValue
+  ): RuntimeValue {
+    if (left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
       return new NumberValue(
-          new Token(
-            TokenType.NUMBER_LITERAL,
-            (parseFloat(left.value) * parseFloat(right.value)).toString(),
-            0
-          )
-        );
+        new Token(
+          TokenType.NUMBER_LITERAL,
+          (parseFloat(left.value) * parseFloat(right.value)).toString(),
+          0
+        )
+      );
     }
-    if(left.type === ValueType.STRING && right.type === ValueType.NUMBER) {
+    if (left.type === ValueType.STRING && right.type === ValueType.NUMBER) {
       return new StringValue(
-          new Token(
-            TokenType.STRING_LITERAL,
-            new Array(parseInt(right.value)).fill(0).map(x=>left.value?.toString()).join(''),
-            0
-          )
-        );
+        new Token(
+          TokenType.STRING_LITERAL,
+          new Array(parseInt(right.value))
+            .fill(0)
+            .map((x) => left.value?.toString())
+            .join(""),
+          0
+        )
+      );
     }
-    if(left.type === ValueType.STRING && right.type === ValueType.BOOLEAN) {
+    if (left.type === ValueType.STRING && right.type === ValueType.BOOLEAN) {
       return new StringValue(
-          new Token(
-            TokenType.STRING_LITERAL,
-            right.value === 'true' ? left.value : "",
-            0
-          )
-        );
+        new Token(
+          TokenType.STRING_LITERAL,
+          right.value === "true" ? left.value : "",
+          0
+        )
+      );
     }
-    if(left.type === ValueType.NUMBER && right.type === ValueType.BOOLEAN) {
+    if (left.type === ValueType.NUMBER && right.type === ValueType.BOOLEAN) {
       return new NumberValue(
-          new Token(
-            TokenType.NUMBER_LITERAL,
-            right.value === 'true' ? left.value : "0",
-            0
-          )
-        );
+        new Token(
+          TokenType.NUMBER_LITERAL,
+          right.value === "true" ? left.value : "0",
+          0
+        )
+      );
     }
 
-    if(left.type === ValueType.BOOLEAN && right.type === ValueType.BOOLEAN) {
+    if (left.type === ValueType.BOOLEAN && right.type === ValueType.BOOLEAN) {
       return new BooleanValue(
-          new Token(
-            TokenType.BOOLEAN_LITERAL,
-            (left.value === 'true' && right.value === 'true').toString(),
-            0
-          )
-        );
+        new Token(
+          TokenType.BOOLEAN_LITERAL,
+          (left.value === "true" && right.value === "true").toString(),
+          0
+        )
+      );
     }
 
     return new NullValue();
   }
 
-  public parseDivisionOperator(left:RuntimeValue, right: RuntimeValue) : RuntimeValue {
-    if(parseFloat(right.value) === 0) {
-      throw new Error("Zero division is not allowed");
-    }
-    if(left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
+  public parseDivisionOperator(
+    left: RuntimeValue,
+    right: RuntimeValue
+  ): RuntimeValue {
+    if (left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
+      if (parseFloat(right.value) === 0) {
+        throw new Error("Zero division is not allowed");
+      }
       return new NumberValue(
         new Token(
           TokenType.NUMBER_LITERAL,
           (parseFloat(left.value) / parseFloat(right.value)).toString(),
           0
         )
-      )
+      );
     }
 
-    // TODO: After arrays get implemented allow 
+    if (left.type === ValueType.STRING && right.type === ValueType.NUMBER) {
+      return new ArrayValue(
+        new Array(
+          Math.ceil(parseInt(left.value.length) / parseInt(right.value))
+        )
+          .fill(0)
+          .map((_x, index) => {
+            // if (index * 2 + 2 > left.value?.length) return new NullValue();
+            const value = left.value?.toString();
+            return new StringValue(
+              new Token(
+                TokenType.STRING_LITERAL,
+                value?.slice(index * 2, index * 2 + 2),
+                0
+              )
+            );
+          })
+          .filter((x) => x.type !== ValueType.NULL)
+      );
+    }
+
     // string / string to be left.split(right)
-    // string / number to "abcde" / 2 === ['ab', 'cd', 'e']
+    if (left.type === ValueType.STRING && right.type === ValueType.STRING) {
+      return new ArrayValue(
+        left.value
+          ?.toString()
+          .split(right.value.toString())
+          .filter((x: string) => x.length > 0)
+          .map(
+            (x: string) =>
+              new StringValue(new Token(TokenType.STRING_LITERAL, x, 0))
+          )
+      );
+    }
 
     return new NullValue();
   }
@@ -350,9 +392,9 @@ class Interpreter {
 
   public parseAssignmentExpr(expr: AssignmentExpr): RuntimeValue {
     const assignment = expr as AssignmentExpr;
-    const left = this.interpret(assignment.left) as VariableValue;
+    const left = (assignment as AssignmentExpr).left as IdentifierExpr;
     const right = this.interpret(assignment.right);
-    return this.environment.set(left.name, right.value);
+    return this.environment.set(left.name.value, right);
   }
 
   public parseVariableDeclaration(expr: VariableDeclaration): RuntimeValue {
@@ -362,6 +404,19 @@ class Interpreter {
       this.interpret(variable.value),
       variable.isConst
     );
+  }
+
+  public parseArrayLiteralExpr(expr: Expr): RuntimeValue {
+    const array = expr as ArrayLiteralExpr;
+    const value = array.elements.map((value) => this.interpret(value));
+    return new ArrayValue(value);
+  }
+
+  public parseArrayAccessExpr(expr: ArrayAccessExpr): RuntimeValue {
+    const array = expr as ArrayAccessExpr;
+    const value = this.environment.get(array.name.value) as ArrayValue;
+    const index = this.interpret(array.index) as NumberValue;
+    return value.value[parseInt(index.value)] ?? new NullValue();
   }
 
   public parseFunctionDeclaration(expr: FunctionDeclaration): RuntimeValue {
@@ -404,19 +459,15 @@ class Interpreter {
   }
 
   public parseDecrement(expr: UnaryExpr, value: RuntimeValue): RuntimeValue {
-    if(value.type === ValueType.BOOLEAN) {
+    if (value.type === ValueType.BOOLEAN) {
       return this.environment.set(
         (expr.expr as IdentifierExpr).name.value,
         new BooleanValue(
-          new Token(
-            TokenType.BOOLEAN_LITERAL,
-            false.toString(),
-            0
-          )
+          new Token(TokenType.BOOLEAN_LITERAL, false.toString(), 0)
         )
       );
-    } 
-    if(value.type === ValueType.NUMBER) {
+    }
+    if (value.type === ValueType.NUMBER) {
       return this.environment.set(
         (expr.expr as IdentifierExpr).name.value,
         new NumberValue(
@@ -427,13 +478,13 @@ class Interpreter {
           )
         )
       );
-    }else if(value.type === ValueType.STRING) {
+    } else if (value.type === ValueType.STRING) {
       return this.environment.set(
         (expr.expr as IdentifierExpr).name.value,
         new StringValue(
           new Token(
             TokenType.STRING_LITERAL,
-            (value.value.slice(0, -1)).toString(),
+            value.value.slice(0, -1).toString(),
             0
           )
         )
@@ -484,44 +535,53 @@ class Interpreter {
   public parseIfStatement(expr: IfStatement): RuntimeValue {
     const ifStmt = expr as IfStatement;
     const condition = this.interpret(ifStmt.condition) as BooleanValue;
-    if (condition.value) {
-      return this.interpret(ifStmt.thenStatement);
+    const localEnvironment = new Environment(this.environment);
+    const interpreter = new Interpreter([], localEnvironment);
+    if (condition.value === "true") {
+      interpreter.interpret(ifStmt.thenStatement);
     } else if (ifStmt.elseStatement) {
-      return this.interpret(ifStmt.elseStatement);
+      interpreter.interpret(ifStmt.elseStatement);
     }
     return new NullValue();
   }
 
   public parseBlockStatement(expr: BlockStatement): RuntimeValue {
     const block = expr as BlockStatement;
+    const localEnvironment = new Environment(this.environment);
+    const interpreter = new Interpreter([], localEnvironment);
     for (const stmt of block.body) {
-      this.interpret(stmt);
+      interpreter.interpret(stmt);
     }
+    localEnvironment.destroy();
     return new NullValue();
   }
 
   public parseWhileStatement(expr: WhileStatement): RuntimeValue {
     const whileStmt = expr as WhileStatement;
-    const interpreter = new Interpreter([], new Environment(this.environment));
+    const localEnvironment = new Environment(this.environment);
+    const interpreter = new Interpreter([], localEnvironment);
     while (interpreter.interpret(whileStmt.condition).value === "true") {
       interpreter.interpret(whileStmt.body);
+      localEnvironment.destroy();
     }
     return new NullValue();
   }
 
   public parseForStatement(expr: ForStatement): RuntimeValue {
     const forStmt = expr as ForStatement;
-    const interpreter = new Interpreter([], new Environment(this.environment));
+    const localEnvironment = new Environment(this.environment);
+    const interpreter = new Interpreter([], localEnvironment);
     interpreter.interpret(forStmt.init);
     while (interpreter.interpret(forStmt.condition).value === "true") {
       interpreter.interpret(forStmt.body);
       interpreter.interpret(forStmt.update);
     }
+    localEnvironment.destroy();
 
     return new NullValue();
   }
 
-  public parseDeleteExpr(expr: DeleteExpr) : RuntimeValue {
+  public parseDeleteExpr(expr: DeleteExpr): RuntimeValue {
     return this.environment.delete(expr.name.value);
   }
 
@@ -594,18 +654,25 @@ class Interpreter {
       return this.parseForStatement(expr as ForStatement);
     }
 
-    if(expr.type === ExprType.DELETE) {
-      console.log(expr);
+    if (expr.type === ExprType.DELETE) {
       return this.parseDeleteExpr(expr as DeleteExpr);
+    }
+
+    if (expr.type === ExprType.ARRAY_LITERAL_EXPR) {
+      return this.parseArrayLiteralExpr(expr);
+    }
+
+    if (expr.type === ExprType.ARRAY_ACCESS_EXPR) {
+      return this.parseArrayAccessExpr(expr as ArrayAccessExpr);
     }
 
     throw new Error(`Unimplemented interpreter for ${expr.type}`);
   }
 
-  public start() {
+  public start(showOutput = true) {
     for (const stmt of this.ast) {
       const value = this.interpret(stmt);
-      if ((value as RuntimeValue)?.value !== undefined) {
+      if (showOutput && (value as RuntimeValue)?.value !== undefined) {
         console.log(value.value);
       }
     }

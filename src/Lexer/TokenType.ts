@@ -60,7 +60,7 @@ enum TokenType {
   COLON = "COLON",
   SEMICOLON = "SEMICOLON",
   EOF = "EOF",
-  DELETE = "DELETE"
+  DELETE = "DELETE",
 }
 
 export default TokenType;

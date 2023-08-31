@@ -1,7 +1,7 @@
-var radius = 5.0;
+var radius = 1.0;
 
 var circumference = 2 * PI * radius;
-// var area = PI * radius * radius;
+var area = PI * radius ** 2;
 
 if (circumference >= 30) {
   print("The circle's circumference is large.");
@@ -9,8 +9,8 @@ if (circumference >= 30) {
   print("The circle's circumference is small.");
 }
 
-for (var i = 0; i < 10; i++) {
-  if (i % 2 == 0) {
+for(var i = 0 ; i< 10 && i < 20 && i - 5 < 0; i++) {
+  if (number(i % 2) == 0) {
     print(i, "is even");
   } else {
     print(i, "is odd");
@@ -23,10 +23,40 @@ function add(a,b) {
 
 print(add(5, 13));
 
-/*
 var fruits = ["apple", "banana", "cherry"];
 print("The second fruit is", fruits[1]);
 
+var matrix = [[1,2,3], [4,5,6], [7,8,9]];
+print(matrix);
+
+var j = 0;
+var l = 0;
+
+while(j < length(matrix)) {
+  var temp = matrix[j];
+  while(l < length(temp)) {
+    print(temp[l]);
+    l++
+  }
+  j++
+  l = 0;
+}
+
+function map(array, func) {
+  var result = [];
+  var l;
+  l = length(array);;
+
+  for(var i = 0; i < l; i++) {
+    result[i] = func(array[i]);; // TODO: Implement array assignment
+  }
+  return result;
+}
+
+var array = [1,2,3,4,5,6,7,8,9,10];
+print(map(array, function(x) { return x * 2; }));
+print(array);
+/*
 var person = {
   name: "Alice",
   age: 30,

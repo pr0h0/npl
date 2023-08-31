@@ -1,6 +1,8 @@
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
 import {
+  ArrayAccessExpr,
+  ArrayLiteralExpr,
   AssignmentExpr,
   BinaryExpr,
   BooleanLiteralExpr,
@@ -46,6 +48,7 @@ class Parser {
   public isAtEnd(): boolean {
     return this.peek().type === TokenType.EOF;
   }
+
   public parseNumberLiteral(): NumberLiteralExpr {
     return new NumberLiteralExpr(this.consume(TokenType.NUMBER_LITERAL));
   }
@@ -62,7 +65,21 @@ class Parser {
     this.consume(TokenType.SEMICOLON);
     return new DeleteExpr(identifier);
   }
-
+  public parseArrayLiteralExpr(): ArrayLiteralExpr {
+    this.consume(TokenType.OPEN_BRACKET);
+    const elements: Expr[] = [];
+    while (this.peek().type !== TokenType.CLOSE_BRACKET) {
+      elements.push(this.parseExpr());
+      if (
+        this.peek().type === TokenType.COMMA &&
+        this.peek(1).type !== TokenType.CLOSE_BRACKET
+      ) {
+        this.consume(TokenType.COMMA);
+      }
+    }
+    this.consume(TokenType.CLOSE_BRACKET);
+    return new ArrayLiteralExpr(elements);
+  }
   public parseIdentifierExpr(): Expr {
     if (this.peek().value === TokenType.NULL.toLowerCase()) {
       return this.parseNullLiteral();
@@ -78,18 +95,15 @@ class Parser {
         const value = this.parseExpr();
         this.consume(TokenType.SEMICOLON);
         return new VariableDeclarationStmt(name, value, type.value === "const");
-      } else if (
+      }
+      if (
         this.peek().type === TokenType.SEMICOLON &&
-        type.value === "const"
+        type.value === TokenType.CONST.toLowerCase()
       ) {
         throw new Error("const variables must be initialized");
       }
       this.consume(TokenType.SEMICOLON);
-      return new VariableDeclarationStmt(
-        name,
-        new EmptyStatement(),
-        type.value === "const"
-      );
+      return new VariableDeclarationStmt(name, new EmptyStatement(), false);
     }
     if (this.peek().value === TokenType.WHILE.toLowerCase()) {
       this.consume(TokenType.IDENTIFIER);
@@ -112,12 +126,22 @@ class Parser {
     }
     if (this.peek().value === TokenType.FUNCTION.toLowerCase()) {
       this.consume(TokenType.IDENTIFIER);
-      const name = this.consume(TokenType.IDENTIFIER);
+      let name = new Token(
+        TokenType.IDENTIFIER,
+        Math.random().toString(36).slice(2),
+        0
+      );
+      if (this.peek().type === TokenType.IDENTIFIER) {
+        name = this.consume(TokenType.IDENTIFIER);
+      }
       this.consume(TokenType.OPEN_PAREN);
       const params: Token[] = [];
       while (this.peek().type !== TokenType.CLOSE_PAREN) {
         params.push(this.consume(TokenType.IDENTIFIER));
-        if (this.peek().type === TokenType.COMMA) {
+        if (
+          this.peek().type === TokenType.COMMA &&
+          this.peek(1).type !== TokenType.CLOSE_PAREN
+        ) {
           this.consume(TokenType.COMMA);
         }
       }
@@ -144,7 +168,10 @@ class Parser {
       const args: Expr[] = [];
       while (this.peek().type !== TokenType.CLOSE_PAREN) {
         args.push(this.parseExpr());
-        if (this.peek().type === TokenType.COMMA) {
+        if (
+          this.peek().type === TokenType.COMMA &&
+          this.peek(1).type !== TokenType.CLOSE_PAREN
+        ) {
           this.consume(TokenType.COMMA);
         }
       }
@@ -169,10 +196,25 @@ class Parser {
       return new BooleanLiteralExpr(this.consume(this.peek().type));
     }
 
-    if (this.peek(1).type === TokenType.SEMICOLON) {
-      const name = this.consume(TokenType.IDENTIFIER);
+    if (this.peek().type === TokenType.SEMICOLON) {
       this.consume(TokenType.SEMICOLON);
-      return new IdentifierExpr(name);
+      return new EmptyStatement();
+    }
+
+    if (this.peek(1).type === TokenType.OPEN_BRACKET) {
+      const name = this.consume(TokenType.IDENTIFIER);
+      this.consume(TokenType.OPEN_BRACKET);
+      const index = this.parseExpr();
+      this.consume(TokenType.CLOSE_BRACKET);
+      return new ArrayAccessExpr(name, index);
+    }
+
+    if (this.peek(1).type === TokenType.ASSIGN) {
+      const name = this.consume(TokenType.IDENTIFIER);
+      this.consume(TokenType.ASSIGN);
+      const value = this.parseExpr();
+      this.consume(TokenType.SEMICOLON);
+      return new AssignmentExpr(new IdentifierExpr(name), value);
     }
 
     return new IdentifierExpr(this.consume(TokenType.IDENTIFIER));
@@ -205,9 +247,10 @@ class Parser {
       this.peek().type === TokenType.AND ||
       this.peek().type === TokenType.OR
     ) {
+      let prevValue = expr;
       const operator = this.consume(this.peek().type);
       const right = this.parseEqualityAndComparisonExpr();
-      expr = new BinaryExpr(operator, expr, right);
+      expr = new BinaryExpr(operator, prevValue, right);
     }
     return expr;
   }
@@ -221,9 +264,10 @@ class Parser {
       this.peek().type === TokenType.LESS ||
       this.peek().type === TokenType.LESS_EQUAL
     ) {
+      let prevValue = expr;
       const operator = this.consume(this.peek().type);
       const right = this.parseAdditionExpr();
-      expr = new BinaryExpr(operator, expr, right);
+      expr = new BinaryExpr(operator, prevValue, right);
     }
     return expr;
   }
@@ -233,9 +277,10 @@ class Parser {
       this.peek().type === TokenType.PLUS ||
       this.peek().type === TokenType.MINUS
     ) {
+      let prevValue = expr;
       const operator = this.consume(this.peek().type);
       const right = this.parseMultiplicationExpr();
-      expr = new BinaryExpr(operator, expr, right);
+      expr = new BinaryExpr(operator, prevValue, right);
     }
     return expr;
   }
@@ -248,9 +293,10 @@ class Parser {
       this.peek().type === TokenType.MODULO ||
       this.peek().type === TokenType.EXPONENT
     ) {
+      let prevValue = expr;
       const operator = this.consume(this.peek().type);
       const right = this.parseUnaryExpr();
-      expr = new BinaryExpr(operator, expr, right);
+      expr = new BinaryExpr(operator, prevValue, right);
     }
     return expr;
   }
@@ -277,7 +323,7 @@ class Parser {
     return expr;
   }
   public parsePrimaryExpr(): Expr {
-    if(this.peek().type === TokenType.DELETE){
+    if (this.peek().type === TokenType.DELETE) {
       return this.parseDeleteExpr();
     }
     if (this.peek().type === TokenType.NUMBER_LITERAL) {
@@ -301,11 +347,15 @@ class Parser {
       return this.parseBlockStatement();
     }
 
-    // if(this.peek().type === TokenType.OPEN_BRACKET) {
-    //   return this.parse
-    // }
+    if (this.peek().type === TokenType.OPEN_BRACKET) {
+      return this.parseArrayLiteralExpr();
+    }
 
-    console.error("Unexpected token", this.peek());
+    console.error(
+      "Unexpected token",
+      this.peek(),
+      this.tokens.filter((t) => t.lineNumber === this.peek().lineNumber)
+    );
     throw new Error("Unexpected token");
   }
   public produceAST(): Expr {
