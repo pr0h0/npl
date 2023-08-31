@@ -1,10 +1,12 @@
 import {
+  BooleanValue,
   NativeFunctionValue,
   NullValue,
   NumberValue,
   RuntimeValue,
   StringValue,
 } from "../Interpreter/Value";
+import ValueType from "../Interpreter/ValueType";
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
 import Environment from "./Environment";
@@ -25,6 +27,24 @@ export function defineVariables(env: Environment) {
 }
 
 export function defineFunctions(env: Environment) {
+  env.define(
+    "rand",
+    new NativeFunctionValue("rand", (args: RuntimeValue[]) => {
+      if(args.length && args[0].value === 'number') {
+        return  new NumberValue(
+          new Token(TokenType.NUMBER_LITERAL, Math.round(Math.random() * Date.now()).toString(), 0)
+        )
+      } else if(args.length && args[0].value === 'boolean') {
+        return new BooleanValue(
+          new Token(TokenType.BOOLEAN_LITERAL, (Math.random() - 0.5 > 0).toString(), 0 )
+        );
+      }
+
+      return new StringValue(
+        new Token(TokenType.STRING_LITERAL, Math.random().toString(16).slice(2), 0)
+      );
+    })
+  );
   env.define(
     "print",
     new NativeFunctionValue("print", (args: RuntimeValue[]) => {
@@ -57,4 +77,37 @@ export function defineFunctions(env: Environment) {
       );
     })
   );
+  env.define(
+    "string",
+    new NativeFunctionValue("string", (args: RuntimeValue[]) => {
+      if(args.length === 0) throw new Error("Expected one argument");
+      const value = String(args[0].value);
+      return new StringValue(
+        new Token(TokenType.STRING_LITERAL, value, 0)
+      );
+    })
+  );
+
+  env.define(
+    "boolean",
+    new NativeFunctionValue("boolean", (args: RuntimeValue[]) => {
+      if(args.length === 0) throw new Error("Expected one argument");
+      const value = args[0];
+      let returnValue = 'false';
+
+      if(value.type === ValueType.BOOLEAN) {
+        returnValue = String(value.value === 'true');
+      } else if(value.type === ValueType.NUMBER) {
+        returnValue = Boolean(Number(value.value)).toString();
+      } else if(value.type === ValueType.STRING) {
+        returnValue = Boolean(value.value).toString();
+      }
+
+      return new StringValue(
+        new Token(TokenType.BOOLEAN_LITERAL, returnValue, 0)
+      );
+    })
+  );
+
+
 }

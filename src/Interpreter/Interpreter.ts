@@ -69,7 +69,7 @@ class Interpreter {
       return new BooleanValue(
         new Token(
           TokenType.BOOLEAN_LITERAL,
-          (left.value || right.value).toString(),
+          (left.value === 'true' || right.value === 'true').toString(),
           0
         )
       );
@@ -172,6 +172,78 @@ class Interpreter {
     return new NullValue();
   }
 
+  public parseMultiplicationOperator(left: RuntimeValue, right: RuntimeValue): RuntimeValue {
+    if(left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
+      return new NumberValue(
+          new Token(
+            TokenType.NUMBER_LITERAL,
+            (parseFloat(left.value) * parseFloat(right.value)).toString(),
+            0
+          )
+        );
+    }
+    if(left.type === ValueType.STRING && right.type === ValueType.NUMBER) {
+      return new StringValue(
+          new Token(
+            TokenType.STRING_LITERAL,
+            new Array(parseInt(right.value)).fill(0).map(x=>left.value?.toString()).join(''),
+            0
+          )
+        );
+    }
+    if(left.type === ValueType.STRING && right.type === ValueType.BOOLEAN) {
+      return new StringValue(
+          new Token(
+            TokenType.STRING_LITERAL,
+            right.value === 'true' ? left.value : "",
+            0
+          )
+        );
+    }
+    if(left.type === ValueType.NUMBER && right.type === ValueType.BOOLEAN) {
+      return new NumberValue(
+          new Token(
+            TokenType.NUMBER_LITERAL,
+            right.value === 'true' ? left.value : "0",
+            0
+          )
+        );
+    }
+
+    if(left.type === ValueType.BOOLEAN && right.type === ValueType.BOOLEAN) {
+      return new BooleanValue(
+          new Token(
+            TokenType.BOOLEAN_LITERAL,
+            (left.value === 'true' && right.value === 'true').toString(),
+            0
+          )
+        );
+    }
+
+    return new NullValue();
+  }
+
+  public parseDivisionOperator(left:RuntimeValue, right: RuntimeValue) : RuntimeValue {
+    if(parseFloat(right.value) === 0) {
+      throw new Error("Zero division is not allowed");
+    }
+    if(left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
+      return new NumberValue(
+        new Token(
+          TokenType.NUMBER_LITERAL,
+          (parseFloat(left.value) / parseFloat(right.value)).toString(),
+          0
+        )
+      )
+    }
+
+    // TODO: After arrays get implemented allow 
+    // string / string to be left.split(right)
+    // string / number to "abcde" / 2 === ['ab', 'cd', 'e']
+
+    return new NullValue();
+  }
+
   public parseBinaryExpr(expr: Expr): RuntimeValue {
     const binary = expr as BinaryExpr;
     const left = this.interpret(binary.left);
@@ -182,21 +254,9 @@ class Interpreter {
       case "-":
         return this.parseSubstractionExpr(left, right);
       case "*":
-        return new NumberValue(
-          new Token(
-            TokenType.NUMBER_LITERAL,
-            (parseFloat(left.value) * parseFloat(right.value)).toString(),
-            0
-          )
-        );
+        return this.parseMultiplicationOperator(left, right);
       case "/":
-        return new NumberValue(
-          new Token(
-            TokenType.NUMBER_LITERAL,
-            (parseFloat(left.value) / parseFloat(right.value)).toString(),
-            0
-          )
-        );
+        return this.parseDivisionOperator(left, right);
       case "%":
         return new NumberValue(
           new Token(
@@ -209,7 +269,7 @@ class Interpreter {
         return new BooleanValue(
           new Token(
             TokenType.BOOLEAN_LITERAL,
-            (left.value === right.value).toString(),
+            (left.type === right.type && left.value === right.value).toString(),
             0
           )
         );
@@ -217,7 +277,7 @@ class Interpreter {
         return new BooleanValue(
           new Token(
             TokenType.BOOLEAN_LITERAL,
-            (left.value !== right.value).toString(),
+            (left.value !== right.value || left.type !== right.type).toString(),
             0
           )
         );
@@ -505,7 +565,7 @@ class Interpreter {
   public start() {
     for (const stmt of this.ast) {
       const value = this.interpret(stmt);
-      if ((value as RuntimeValue)?.value) {
+      if ((value as RuntimeValue)?.value !== undefined) {
         console.log(value.value);
       }
     }
