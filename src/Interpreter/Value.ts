@@ -39,12 +39,12 @@ export class FunctionValue extends RuntimeValue {
     public params: Token[],
     public body: Expr[],
     public closure: Environment
-  ) {
+    ) {
     super(null, ValueType.FUNCTION);
   }
 
   public call(args: RuntimeValue[]) {
-    const interpreter = new Interpreter([], this.closure);
+    const interpreter = new Interpreter([], new Environment(this.closure));
     for (let i = 0; i < this.params.length; i++) {
       interpreter.environment.define(
         this.params[i].value,

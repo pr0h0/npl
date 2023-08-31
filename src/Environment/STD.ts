@@ -47,4 +47,14 @@ export function defineFunctions(env: Environment) {
       );
     })
   );
+  env.define(
+    "number",
+    new NativeFunctionValue("number", (args: RuntimeValue[]) => {
+      if(args.length === 0) throw new Error("Expected one argument");
+      const number = Number(args[0].value);
+      return new NumberValue(
+        new Token(TokenType.NUMBER_LITERAL, number.toString() , 0)
+      );
+    })
+  );
 }

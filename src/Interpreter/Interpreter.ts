@@ -120,11 +120,10 @@ class Interpreter {
       return new StringValue(
         new Token(
           TokenType.STRING_LITERAL,
-          left.value
-            .toString()
+          right.value
             .slice(
-              parseFloat(right.value.toString()),
-              left.value.toString().length
+              parseFloat(left.value.toString()),
+              right.value.length
             ),
           0
         )
